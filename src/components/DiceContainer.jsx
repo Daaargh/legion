@@ -41,7 +41,7 @@ export function DiceContainer(props) {
   ];
   return (
     <div className="dice">
-      {dice.map((die) => (
+      {props.dice.map((die) => (
         <img className="die__img" src={die.imgsrc} alt="die" />
       ))}
     </div>

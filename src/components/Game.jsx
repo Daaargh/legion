@@ -3,11 +3,10 @@ import ReactDOM from "react-dom";
 import { ScoreBoard } from "./ScoreBoard";
 import { Result } from "./Result";
 import { DiceContainer } from "./DiceContainer";
-import { Buttons } from "./Buttons";
+import { ButtonContainer } from "./ButtonContainer";
+import { useState } from "react";
 
 export function Game() {
-  const activePlayer = [players[0].name, players[1].name];
-
   const dice = [
     {
       key: 1,
@@ -73,12 +72,23 @@ export function Game() {
     },
   ];
 
+  const playerTurn = [players[0].player, players[1].player];
+
+  const [activePlayer, setActivePlayer] = useState(playerTurn[0]);
+
+  const switchPlayer = () => {
+    setActivePlayer(
+      activePlayer === playerTurn[0] ? playerTurn[1] : playerTurn[0]
+    );
+    console.log(activePlayer);
+  };
+
   return (
     <>
       <ScoreBoard />
-      <Result />
-      <DiceContainer />
-      <Buttons />
+      <Result activePlayer={activePlayer} />
+      <DiceContainer dice={dice} />
+      <ButtonContainer endButtonClick={switchPlayer} />
     </>
   );
 }

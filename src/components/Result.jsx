@@ -1,9 +1,9 @@
 import React from "react";
 
-export function Result() {
+export function Result(props) {
   return (
     <div className="result">
-      <p>Player One's Turn</p>
+      <p>{props.activePlayer}'s Turn</p>
     </div>
   );
 }
