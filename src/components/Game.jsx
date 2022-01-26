@@ -72,21 +72,27 @@ export function Game() {
     },
   ];
 
-  const playerTurn = [players[0].player, players[1].player];
+  // The current player whose turn it is
+  //   const playerTurn = [players[0].player, players[1].player];
 
-  const [activePlayer, setActivePlayer] = useState(playerTurn[0]);
+  const [activePlayer, setActivePlayer] = useState(0);
+  const [gameWin, setGameWon] = useState(false);
 
   const switchPlayer = () => {
-    setActivePlayer(
-      activePlayer === playerTurn[0] ? playerTurn[1] : playerTurn[0]
-    );
+    setActivePlayer(activePlayer === 0 ? 1 : 0);
     console.log(activePlayer);
+  };
+
+  const endPlayerTurn = () => {
+    players[activePlayer].turnScore = 0;
+    players[activePlayer].rerollScore = 0;
+    players[activePlayer].isReroll = false;
   };
 
   return (
     <>
       <ScoreBoard />
-      <Result activePlayer={activePlayer} />
+      <Result activePlayer={players[activePlayer].player} />
       <DiceContainer dice={dice} />
       <ButtonContainer endButtonClick={switchPlayer} />
     </>
