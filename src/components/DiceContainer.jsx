@@ -1,6 +1,6 @@
 import React from "react";
 
-export function DiceContainer() {
+export function DiceContainer(props) {
   const dice = [
     {
       die: 1,
