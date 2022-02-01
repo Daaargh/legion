@@ -1,8 +1,9 @@
 import React from "react";
 
-export function ReRollButton() {
-  return;
-  <button className="roll-button" type="button">
-    Reroll
-  </button>;
+export function RerollButton() {
+  return (
+    <button className="roll-button" type="button">
+      Reroll Dice
+    </button>
+  );
 }

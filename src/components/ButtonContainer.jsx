@@ -5,7 +5,10 @@ import { RollButton } from "./RollButton";
 export function ButtonContainer(props) {
   return (
     <div className="button-div">
-      <RollButton rollButtonClick={props.rollButtonClick} />
+      <RollButton
+        rollButtonClick={props.rollButtonClick}
+        isReroll={props.isReroll}
+      />
       <EndTurnButton endButtonClick={props.endButtonClick} />
     </div>
   );
