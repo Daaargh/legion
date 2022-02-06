@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom";
+import ReactDOM, { unmountComponentAtNode } from "react-dom";
 import { ScoreBoard } from "./ScoreBoard";
 import { Result } from "./Result";
 import { DiceContainer } from "./DiceContainer";
@@ -68,9 +68,8 @@ export function Game() {
     {
       key: "Player One",
       player: "Player One",
-      turnScore: 990,
+      turnScore: 0,
       rerollScore: 0,
-      isReroll: false,
       totalScore: 0,
     },
 
@@ -79,38 +78,72 @@ export function Game() {
       player: "Player Two",
       turnScore: 0,
       rerollScore: 0,
-      isReroll: false,
       totalScore: 0,
     },
   ];
 
-  const [gameWon, setGameWon] = useState(false);
+  let turnScoreRef = useRef(0);
+  let isUnkeptScoringDiceRef = useRef(false);
+  const unkeptScoringDieRef = useRef([]);
+  const dieFrequencyRef = useRef([0, 0, 0, 0, 0, 0]);
 
+  const [gameWon, setGameWon] = useState(false);
   const [activePlayer, setActivePlayer] = useState(0);
   const [player, setPlayer] = useState(playerStats);
   const [dice, setDice] = useState(dieArray);
-  const [dieFrequency, setDieFrequency] = useState([]);
+  const [turnScore, setTurnScore] = useState(0);
+  const [isReroll, setIsReroll] = useState(false);
   const [resultMessage, setResultMessage] = useState(
     `${player[activePlayer].player}'s Turn`
   );
-  const [turnScore, setTurnScore] = useState();
   const takeTurn = () => {
+    setResultMessage("");
+    turnScoreRef.current = 0;
+    setTurnScore(0);
+
     rollDice();
+
     countDice();
-    checkScore();
-    // if (player.isReroll) {
-    //   if (player.rerollScore <= player.turnScore) {
-    //     player[activePlayer].turnScore = 0;
-    //   } else {
-    //     player.turnScore = player.rerollScore;
-    //     player.rerollScore = 0;
-    //   }
-    // }
-    // player.isReroll = true;
+
+    if (checkIfUnkeptScoringDice() === true) {
+      checkScore();
+      checkNoScoringDice();
+      setPlayerTurnScore(activePlayer, isReroll, turnScoreRef.current);
+
+      setIsReroll(true);
+    } else {
+      turnScoreRef.current = 0;
+      setTurnScoreAndResultMessage(0, 0, 0, "scoring dice : ");
+      setPlayerTurnScore(activePlayer, isReroll, turnScoreRef.current);
+    }
   };
 
-  ///////////////// ROLLING ///////////////////////
+  const setPlayerTurnScore = (activePlayer, isReroll, thisTurnScore) => {
+    const playersArray = [...player];
+    const currentPlayer = playersArray[activePlayer];
 
+    // if (isReroll === false) {
+    currentPlayer.turnScore = thisTurnScore;
+    playersArray[activePlayer] = currentPlayer;
+    setPlayer(playersArray);
+    // } else {
+    //   currentPlayer.rerollScore = turnScoreRef.current;
+
+    // if (currentPlayer.rerollScore > currentPlayer.turnScore) {
+    //   currentPlayer.turnScore = currentPlayer.rerollScore;
+    //   currentPlayer.rerollScore = 0;
+    // } else {
+    //   currentPlayer.turnScore = 0;
+    //   currentPlayer.rerollScore = 0;
+    //   setResultMessage(
+    //     `NO SCORING COMBINATION. TURN SCORE IS ${currentPlayer.turnScore} POINTS!`
+    //   );
+    // }
+    // }
+  };
+
+  /////////// ROLLING //////////////////
+  //#region
   const rollDice = () => {
     const diceCopy = [...dice];
     for (const die of diceCopy) {
@@ -122,24 +155,45 @@ export function Game() {
       }
     }
   };
+  //#endregion
 
-  /////////////// COUNTING DICE //////////////////////
-
+  /////////// COUNTING DICE ////////////
+  //#region
   const countDice = () => {
-    setResultMessage("COUNTING DICE");
-
-    const frequencyCount = [0, 0, 0, 0, 0, 0];
+    dieFrequencyRef.current = [0, 0, 0, 0, 0, 0];
     for (const die of dice) {
-      frequencyCount[die.value - 1]++;
+      dieFrequencyRef.current[die.value - 1]++;
+      if (!die.isSaved) {
+        unkeptScoringDieRef.current[die.value - 1]++;
+      }
     }
-
-    console.log(frequencyCount);
-    setDieFrequency(frequencyCount);
-    console.log(dieFrequency);
   };
 
-  /////////////// CALCULATE SCORE //////////////////////
+  const checkIfUnkeptScoringDice = () => {
+    // Check there is at least one 1 or one 2 in unkept scoring dice
+    for (const value in unkeptScoringDieRef.current.slice(0, 2)) {
+      if (value >= 1) {
+        isUnkeptScoringDiceRef.current = true;
+        return true;
+      }
+    }
+    // Check there are at least three 3's, 4's, 5's or 6's in unkept scoring dice
+    for (const value in unkeptScoringDieRef.current.slice(2)) {
+      if (value >= 3) {
+        isUnkeptScoringDiceRef.current = true;
+        return true;
+      }
+    }
+    // turnScoreRef.current = 0;
+    // setResultMessage(
+    //   `NO SCORING COMBINATION. TURN SCORE IS ${player[activePlayer].turnScore} POINTS!`
+    // );
+    return false;
+  };
+  //#endregion
 
+  /////////// CALCULATE SCORE //////////
+  //#region
   const checkScore = () => {
     if (checkDoubles()) {
       return;
@@ -153,39 +207,38 @@ export function Game() {
       return;
     }
 
-    if (!checkOnes()) {
+    if (checkIfFourOnes()) {
       return;
     }
 
-    checkTwos();
-    checkThrees();
-    checkFours();
-    checkFives();
-    checkSixes();
+    // if (checkIfUnkeptScoringDice() === false) {
+    //   return;
+    // }
+
+    checkOnesAndTwos();
+    checkThreeFourFiveSix();
   };
 
-  const setTurnScoreAndResultMessage = (totalFreq, points, message) => {
-    setTurnScore((prev) => prev + Number(totalFreq) * points);
-    setResultMessage((prev) => prev + `${totalFreq} ${message}`);
-  };
   const checkDoubles = () => {
     let doubleCounter = 0;
-    for (const number of dieFrequency) {
+    for (const number of dieFrequencyRef.current) {
       number === 2 && doubleCounter++;
     }
 
     if (doubleCounter === 3) {
       setResultMessage("DOUBLES! ");
       setTurnScore(1000);
+      turnScoreRef.current = 1000;
       return true;
     }
   };
 
   const checkSixOfAKind = () => {
-    for (const freq of dieFrequency) {
+    for (const freq of dieFrequencyRef.current) {
       if (freq === 6) {
         setResultMessage("SIX OF A KIND! ");
         setTurnScore(5000);
+        turnScoreRef.current = 5000;
         return true;
       }
     }
@@ -193,76 +246,85 @@ export function Game() {
 
   const checkCircus = () => {
     let counter = 0;
-    for (const freq of dieFrequency) {
+    for (const freq of dieFrequencyRef.current) {
       freq === 1 && counter++;
     }
 
     if (counter === 6) {
       setResultMessage("CIRCUS! ");
       setTurnScore(2000);
+      turnScoreRef.current = 2000;
       return true;
     }
   };
 
-  const checkOnes = () => {
-    // setResultMessage("COUNTING ONES");
-
-    const totalOnes = dieFrequency[0];
-    if (totalOnes >= 4) {
-      setResultMessage("4 Ones...Your total score is 0");
-      // set total score to 0
-      return false;
-    }
-    if (totalOnes > 0) {
-      setTurnScoreAndResultMessage(totalOnes, 5, "ones : ");
-      // setTurnScore((prev) => prev + totalOnes * 5);
-      // setResultMessage((prev) => prev + `${totalOnes} ones : `);
+  const checkIfFourOnes = () => {
+    const ones = dieFrequencyRef.current[0];
+    if (ones >= 4) {
+      setTurnScoreAndResultMessage(1, 4, 0, "ones : Total score is ");
+      return true;
     }
   };
 
-  const checkTwos = () => {
-    const totalTwos = dieFrequency[1];
-    if (totalTwos > 0) {
-      setTurnScoreAndResultMessage(totalTwos, 10, "twos : ");
-      // setTurnScore((prev) => prev + totalTwos * 10);
-      // setResultMessage((prev) => prev + `${totalTwos} twos : `);
-    }
+  const checkOnesAndTwos = () => {
+    const [ones, twos, , , ,] = dieFrequencyRef.current;
+
+    ones > 0 && setTurnScoreAndResultMessage(1, ones, 5, "ones : ");
+    twos > 0 && setTurnScoreAndResultMessage(2, twos, 10, "twos : ");
   };
 
-  const checkThrees = () => {
-    const totalThrees = dieFrequency[2];
-    if (totalThrees >= 3) {
-      setTurnScoreAndResultMessage(totalThrees, 50, "threes : ");
-      // setTurnScore((prev) => prev + 50);
-      // setResultMessage((prev) => prev + " 3 threes : ");
-    }
+  const checkThreeFourFiveSix = () => {
+    const [, , threes, fours, fives, sixes] = dieFrequencyRef.current;
+
+    threes >= 3 && setTurnScoreAndResultMessage(3, 3, 50, "threes : ");
+    fours >= 3 && setTurnScoreAndResultMessage(4, 3, 100, "fours : ");
+    fives >= 3 && setTurnScoreAndResultMessage(5, 3, 500, "fives : ");
+    sixes >= 3 && setTurnScoreAndResultMessage(6, 3, 1000, "sixes : ");
   };
 
-  const checkFours = () => {
-    const totalFours = dieFrequency[3];
-    if (totalFours >= 3) {
-      setTurnScoreAndResultMessage(totalFours, 100, "fours : ");
-      // setTurnScore((prev) => prev + 100);
-      // setResultMessage((prev) => prev + "3 fours : ");
+  const setTurnScoreAndResultMessage = (
+    dieValue,
+    totalFreq,
+    points,
+    message
+  ) => {
+    if (dieValue < 3) {
+      turnScoreRef.current += Number(totalFreq) * points;
+      setTurnScore((prev) => prev + Number(totalFreq) * points);
+      setResultMessage((prev) => prev + `${totalFreq} ${message}`);
+      return;
     }
+    turnScoreRef.current += points;
+    setTurnScore((prev) => prev + points);
+    setResultMessage((prev) => prev + `${totalFreq} ${message}`);
   };
 
-  const checkFives = () => {
-    const totalFives = dieFrequency[4];
-    if (totalFives >= 3) {
-      setTurnScoreAndResultMessage(totalFives, 500, "fives : ");
-      // setTurnScore((prev) => prev + 500);
-      // setResultMessage((prev) => prev + "3 fives : ");
-    }
+  //#endregion
+
+  /////////// APPLY SCORE //////////////
+  const checkNoScoringDice = () => {
+    turnScore === 0 &&
+      setResultMessage(
+        `NO SCORING COMBINATION. TURN SCORE IS ${player[activePlayer].turnScore} POINTS!`
+      );
   };
 
-  const checkSixes = () => {
-    const totalSixes = dieFrequency[5];
-    if (totalSixes >= 3) {
-      setTurnScoreAndResultMessage(totalSixes, 1000, "sixes : ");
-      // setTurnScore((prev) => prev + 1000);
-      // setResultMessage((prev) => prev + "3 sixes : ");
+  /////////// Set Player total score //
+  const updatePlayerScore = () => {
+    const currentPlayer = [...player];
+    currentPlayer[activePlayer].totalScore +=
+      currentPlayer[activePlayer].turnScore;
+  };
+
+  /////////// RESET PLAYER STATS ///////
+  const resetPlayerStats = () => {
+    const players = [...player];
+    for (const player of players) {
+      player.turnScore = 0;
+      player.rerollScore = 0;
+      player.totalScore = 0;
     }
+    setPlayer(players);
   };
 
   /////////////// END TURN ///////////////////////
@@ -288,6 +350,7 @@ export function Game() {
       />
       <DiceContainer dice={dice} />
       <ButtonContainer
+        isReroll={isReroll}
         rollButtonClick={() => takeTurn(player[activePlayer])}
         endButtonClick={switchPlayer}
       />
