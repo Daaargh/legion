@@ -5,7 +5,7 @@ export function Result(props) {
     <div className="result">
       {/* <p>{props.activePlayer}'s Turn</p> */}
       <p>
-        {props.resultMessage} {props.turnScore}
+        {props.resultMessage} {props.hasRolled === true ? props.turnScore : ""}
       </p>
     </div>
   );

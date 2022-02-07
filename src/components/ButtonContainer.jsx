@@ -6,6 +6,7 @@ export function ButtonContainer(props) {
   return (
     <div className="button-div">
       <RollButton
+        rollButtonEnabled={props.rollButtonEnabled}
         rollButtonClick={props.rollButtonClick}
         isReroll={props.isReroll}
       />

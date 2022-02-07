@@ -3,7 +3,8 @@ import React from "react";
 export function RollButton(props) {
   return (
     <button
-      // isReroll={props.isReroll}
+      disabled={!props.rollButtonEnabled}
+      isReroll={props.isReroll}
       onClick={props.rollButtonClick}
       className="roll-button"
       type="button"

@@ -91,20 +91,38 @@ export function Game() {
     },
   ];
 
-  let turnScoreRef = useRef(0);
-  let isUnkeptScoringDiceRef = useRef(false);
+  const hasRolledRef = useRef(false);
+  const turnScoreRef = useRef(0);
+  const isUnkeptScoringDiceRef = useRef(false);
+  const activePlayerRef = useRef(0);
   const unkeptScoringDieRef = useRef([0, 0, 0, 0, 0, 0]);
   const dieFrequencyRef = useRef([0, 0, 0, 0, 0, 0]);
 
+  // useEffect(() => {
+  //   // Update the document title using the browser API
+  //   console.log(isKeptDie);
+  // });
+  const [isKeptDie, setIsKeptDie] = useState(true);
   const [gameWon, setGameWon] = useState(false);
-  const [activePlayer, setActivePlayer] = useState(0);
   const [player, setPlayer] = useState(playerStats);
   const [dice, setDice] = useState(dieArray);
   const [turnScore, setTurnScore] = useState(0);
   const [isReroll, setIsReroll] = useState(false);
   const [resultMessage, setResultMessage] = useState(
-    `${player[activePlayer].player}'s Turn`
+    `${player[activePlayerRef.current].player}'s Turn`
   );
+
+  const checkGreens = () => {
+    const dice = document.querySelector(".dice");
+    for (const child of dice.children) {
+      if (child.classList.contains("green-glow")) {
+        setIsKeptDie(true);
+        break;
+      } else {
+        setIsKeptDie(false);
+      }
+    }
+  };
   const takeTurn = () => {
     isReroll && setSavedDice();
     setResultMessage("");
@@ -116,33 +134,40 @@ export function Game() {
     countDice();
 
     if (checkIfUnkeptScoringDice() === true) {
-      console.log(true);
       checkScore();
       // checkNoScoringDice();
-      setPlayerTurnScore(activePlayer, isReroll, turnScoreRef.current);
+      setPlayerTurnScore(
+        activePlayerRef.current,
+        isReroll,
+        turnScoreRef.current
+      );
 
       setIsReroll(true);
     } else {
-      console.log(false);
-
       turnScoreRef.current = 0;
-      setTurnScoreAndResultMessage(0, 0, 0, "scoring dice : ");
-      setPlayerTurnScore(activePlayer, isReroll, turnScoreRef.current);
+      setTurnScoreAndResultMessage(0, 0, 0, "scoring dice");
+      setPlayerTurnScore(
+        activePlayerRef.current,
+        isReroll,
+        turnScoreRef.current
+      );
     }
   };
 
   const setPlayerTurnScore = (activePlayer, isReroll, thisTurnScore) => {
     const playersArray = [...player];
-    const currentPlayer = playersArray[activePlayer];
+    const currentPlayer = playersArray[activePlayerRef.current];
 
     currentPlayer.turnScore = thisTurnScore;
-    playersArray[activePlayer] = currentPlayer;
+    playersArray[activePlayerRef.current] = currentPlayer;
     setPlayer(playersArray);
   };
 
   /////////// ROLLING //////////////////
   //#region
   const rollDice = () => {
+    setIsKeptDie(false);
+    hasRolledRef.current = true;
     const diceCopy = [...dice];
     for (const die of diceCopy) {
       if (!die.isSaved) {
@@ -161,6 +186,8 @@ export function Game() {
     const poopDice = document.querySelector(".dice").children;
     for (let i = 0; i < poopDice.length; i++) {
       if (poopDice[i].classList.contains("green-glow")) {
+        poopDice[i].classList.remove("green-glow");
+        poopDice[i].classList.add("invisible-border");
         theDice[i].isSaved = true;
       }
     }
@@ -295,6 +322,7 @@ export function Game() {
       turnScoreRef.current += Number(totalFreq) * points;
       setTurnScore((prev) => prev + Number(totalFreq) * points);
       setResultMessage((prev) => prev + `${totalFreq} ${message}`);
+      turnScoreRef.current === 0 && lockDice();
       return;
     }
     turnScoreRef.current += points;
@@ -307,15 +335,15 @@ export function Game() {
   /////////// APPLY SCORE //////////////
   const checkNoScoringDice = () => {
     turnScoreRef.current === 0 &&
-      setTurnScoreAndResultMessage(0, 0, 0, "scoring dice : ");
+      setTurnScoreAndResultMessage(0, 0, 0, "scoring dice");
   };
 
   /////////// Set Player total score //
   const updatePlayerScore = () => {
     const playersArray = [...player];
-    const currentPlayer = playersArray[activePlayer];
+    const currentPlayer = playersArray[activePlayerRef.current];
     currentPlayer.totalScore += currentPlayer.turnScore;
-    playersArray[activePlayer] = currentPlayer;
+    playersArray[activePlayerRef.current] = currentPlayer;
     setPlayer(playersArray);
   };
 
@@ -333,19 +361,40 @@ export function Game() {
   /////////////// SWITCH PLAYER //////////////////
 
   const switchPlayer = () => {
-    setActivePlayer(activePlayer === 0 ? 1 : 0);
+    activePlayerRef.current = activePlayerRef.current === 0 ? 1 : 0;
+    // setActivePlayer(activePlayer === 0 ? 1 : 0);
   };
   /////////////// END TURN ///////////////////////
   const endTurn = () => {
+    hasRolledRef.current = false;
     updatePlayerScore();
     resetPlayerStats();
+    resetDice();
     switchPlayer();
+    setIsReroll(false);
+    setResultMessage(`${player[activePlayerRef.current].player}'s turn`);
+    setIsKeptDie(true);
+  };
+
+  const resetDice = () => {
+    const diceArray = [...dice];
+    for (let i = 0; i < diceArray.length; i++) {
+      diceArray[i].isKeptThisTurn = false;
+      diceArray[i].isSaved = false;
+      diceArray[i].imgsrc = `images/die-${i + 1}.png`;
+    }
+    const diceElements = document.querySelector(".dice").children;
+    for (const die of diceElements) {
+      die.classList.remove("green-glow", "opaque");
+    }
+    setDice(diceArray);
   };
 
   const toldy = (e) => {
     if (!dice[e.target.getAttribute("id")].isSaved && isReroll === true) {
       if (e.target.getAttribute("value") < 3) {
         e.target.classList.toggle("green-glow");
+        e.target.classList.toggle("opaque");
       } else if (
         e.target.getAttribute("value") >= 3 &&
         dieFrequencyRef.current[e.target.getAttribute("value") - 1] >= 3
@@ -367,26 +416,37 @@ export function Game() {
               child.classList.remove("green-glow");
             }
           }
-          e.target.classList.add("green-glow");
+          e.target.classList.add("green-glow", "opaque");
           e.target.parentElement.children[dieArray[0]].classList.add(
-            "green-glow"
+            "green-glow",
+            "opaque"
           );
 
           e.target.parentElement.children[dieArray[1]].classList.add(
-            "green-glow"
+            "green-glow",
+            "opaque"
           );
         } else {
           for (const child of e.target.parentElement.children) {
             if (
               child.getAttribute("value") === e.target.getAttribute("value")
             ) {
-              child.classList.remove("green-glow");
+              child.classList.remove("green-glow", "opaque");
             }
           }
         }
       }
+      checkGreens();
     }
     const toldy = document.querySelector(".dice");
+  };
+
+  const lockDice = () => {
+    const diceArray = [...dice];
+    for (const dice of diceArray) {
+      dice.isSaved = true;
+    }
+    setDice(diceArray);
   };
 
   return (
@@ -396,14 +456,16 @@ export function Game() {
         playerTwoScore={player[1].totalScore}
       />
       <Result
-        activePlayer={player[activePlayer].player}
+        hasRolled={hasRolledRef.current}
+        activePlayer={player[activePlayerRef.current].player}
         resultMessage={resultMessage}
         turnScore={turnScore}
       />
       <DiceContainer method={toldy} dice={dice} />
       <ButtonContainer
+        rollButtonEnabled={isKeptDie}
         isReroll={isReroll}
-        rollButtonClick={() => takeTurn(player[activePlayer])}
+        rollButtonClick={() => takeTurn(player[activePlayerRef.current])}
         endButtonClick={endTurn}
       />
     </>
