@@ -149,6 +149,9 @@ header {
   .result {
     font-size: 28px;
   }
+  .button {
+    font-size: 30px;
+  }
 }
 
 @media only screen and (max-width: 300px) {
@@ -157,5 +160,8 @@ header {
   }
   .result {
     font-size: 28px;
+  }
+  .button {
+    font-size: 30px;
   }
 }

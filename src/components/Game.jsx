@@ -89,7 +89,7 @@ export function Game() {
     },
   ];
 
-  const winningScoreRef = useRef(100);
+  const winningScoreRef = useRef(5000);
   const hasRolledRef = useRef(false);
   const turnScoreRef = useRef(0);
   const isUnkeptScoringDiceRef = useRef(false);
