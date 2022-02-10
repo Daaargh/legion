@@ -1,13 +1,10 @@
 import React from "react";
-import ReactDOM, { unmountComponentAtNode } from "react-dom";
 import { ScoreBoard } from "./ScoreBoard";
 import { Result } from "./Result";
 import { DiceContainer } from "./DiceContainer";
 import { ButtonContainer } from "./ButtonContainer";
 import { useState } from "react";
-import { useEffect } from "react";
 import { useRef } from "react";
-import { act } from "react-dom/cjs/react-dom-test-utils.production.min";
 
 export function Game() {
   const diceImages = [
